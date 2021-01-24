@@ -1,0 +1,7 @@
+1. G/C content between 36 and 52% +1 point
+2. A/U bp at positions 15-19, the sense strand +1 point each
+3. lack of internal repeats +1 point
+4. A at position 3 and 19, sense strand +1 point each
+5. U at position 10, sense strand +1 point
+6. G at position 13, sense strand -1 point
+7. G or C at position 19, sense strand -1 point
