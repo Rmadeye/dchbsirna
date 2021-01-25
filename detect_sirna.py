@@ -13,7 +13,7 @@ class SeqReader:
         return subseq_list
 
     def create_complimentary_strand(self, mrna: Seq) -> Seq:
-        return mrna.complement()+"TT"
+        return mrna+"TT"
 
     def check_sirna_quality(self, sirna: Seq) -> bool:
         requirements_matrix = {"Sequence":"",
@@ -44,10 +44,11 @@ class SeqReader:
             except IndexError:
                 break
 
-        if check_reps != 0:
+        if check_reps == 0:
             requirements_matrix["internal repeats"] = check_reps
-        else:
             counter += 1
+        else:
+            counter -= check_reps
 
         if sirna[2] == 'A':
             counter += 1
@@ -74,9 +75,10 @@ class SeqReader:
             counter = 0
 
 
-        if counter > 7:
+        if counter > 1:
             requirements_matrix['Total number of points'] = counter
             print(requirements_matrix)
+            return True
 
 
 
