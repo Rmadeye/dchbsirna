@@ -13,7 +13,7 @@ class SeqReader:
         return subseq_list
 
     def create_complimentary_strand(self, mrna: Seq) -> Seq:
-        return mrna+"TT"
+        return mrna.complement()+"TT"
 
     def check_sirna_quality(self, sirna: Seq) -> bool:
         requirements_matrix = {"Sequence":"",
@@ -22,7 +22,8 @@ class SeqReader:
             "A/U on position 19": "FAILED",
             "At least 4 A/U on bp 12-19": "FAILED",
                                "GC content":"0",
-                               "internal repeats":"x"
+                               "internal repeats":"",
+                               "GC stretch": "absent"
         }
         counter = 0
         requirements_matrix["Sequence"] = sirna._data
@@ -32,7 +33,7 @@ class SeqReader:
                                                                 f" {sirna[14:18].count('A') + sirna[14:18].count('U')}"
             counter += sirna[14:18].count('A') + sirna[14:18].count('U')
 
-        if (GC(sirna) < 52) and (GC(sirna) > 36):
+        if (GC(sirna) < 52) and (GC(sirna) > 30):
             counter += 1
             requirements_matrix["GC content"] = int(GC(sirna))
 
@@ -45,12 +46,15 @@ class SeqReader:
                 break
 
         if check_reps == 0:
-            requirements_matrix["internal repeats"] = check_reps
+            requirements_matrix["internal repeats"] = 0
             counter += 1
         else:
-            counter -= check_reps
+            requirements_matrix["internal repeats"] = check_reps
+            counter -= 1
 
         if sirna[2] == 'A':
+            counter += 1
+        if sirna[9] == 'U':
             counter += 1
         if sirna[18] == 'A':
             counter += 1
@@ -61,6 +65,17 @@ class SeqReader:
 
         if (sirna[18] == 'G' or sirna[18] == 'C'):
             counter -= 1
+
+        """ Check GC stretch"""
+
+        gc_stretch_check = [sirna[i:i+9] for i in range(len(sirna)) if len(sirna[i:i+9]) == 9]
+        for element in gc_stretch_check:
+            if GC(element) == 0:
+                # print(element)
+                counter -= 1
+                requirements_matrix['GC stretch'] = "Present"
+                break
+
 
         if sirna[0] == "G":
             requirements_matrix["G/C start"] = "PASSED"
@@ -75,10 +90,10 @@ class SeqReader:
             counter = 0
 
 
-        if counter > 1:
+        if counter > 6:
             requirements_matrix['Total number of points'] = counter
             print(requirements_matrix)
-            return True
+            # return True
 
 
 
@@ -89,10 +104,10 @@ if __name__ == '__main__':
     subseqlist = testcase.read_fasta_prepare_subsequences()
     for el in subseqlist:
         passenger_strand = testcase.create_complimentary_strand(el)
-        if testcase.check_sirna_quality(passenger_strand):
-            print(f"Passenger   : 5'{testcase.create_complimentary_strand(el)}  3'")
+        if testcase.check_sirna_quality(el):
+            print(f"Passenger   : 3'{testcase.create_complimentary_strand(el)}  5'")
             print("                |||||||||||||||||||||")
-            print(f"Guide strand: 3'{el}    5'"  )
+            print(f"Guide strand: 5'{el}    3'"  )
             print("\n")
 
 
