@@ -1,6 +1,7 @@
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqUtils import GC
+from Bio.SeqUtils import MeltingTemp as mt
 # import pandas as pd
 
 class SeqReader:
@@ -23,7 +24,8 @@ class SeqReader:
             "At least 4 A/U on bp 12-19": "FAILED",
                                "GC content":"0",
                                "internal repeats":"",
-                               "GC stretch": "absent"
+                               "GC stretch": "absent",
+                               "Melting temp":""
         }
         counter = 0
         requirements_matrix["Sequence"] = sirna._data
@@ -88,6 +90,8 @@ class SeqReader:
             counter += 1
         else:
             counter = 0
+
+        requirements_matrix["Melting temp"] = round(mt.Tm_NN(sirna),1)
 
 
         if counter > 6:
