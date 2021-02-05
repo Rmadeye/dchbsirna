@@ -95,7 +95,7 @@ class SeqReader:
 
         gc_stretch_check = [mrna[i:i + 10] for i in range(len(mrna)) if len(mrna[i:i + 10]) == 10]
         for element in gc_stretch_check:
-            print(CRED+element)
+            # print(CRED+element)
             if GC(element) == 0:
                 counter -= 1
                 requirements_matrix['GC stretch'] = "PRESENT"
@@ -136,13 +136,14 @@ class SeqReader:
             return requirements_matrix, True
 
 
-    def check_uitei_design(self, sense_strand: Seq) -> bool:
+    def check_uitei_design(self, sense_strand: Seq) -> tuple:
         uitei_rules = {"A/U not in position 19":"",
                        "G/C on position 1":"",
                        "A/U rich within 10-17":"",
                        "GC stretch < 10":"",
                        "Asymmetrical 5'/3' Tm":"",
                        "Unstable 3' low Tm":"",
+                       "Total Tm":"",
                        "Result":""}
         points = 0
         """Rule 1"""
@@ -169,14 +170,55 @@ class SeqReader:
                                                    sense_strand[9:16].count('T')
         """Rule 4"""
         gc_stretch_check = [sense_strand[i:i + 10] for i in range(len(sense_strand)) if len(sense_strand[i:i + 10]) == 10]
+        stretch_count = 0
         for element in gc_stretch_check:
             if GC(element) == 0:
                 uitei_rules["GC stretch < 10"] = "Present"
+                break
             else:
-                uitei_rules["GC stretch < 10"] = "Absent"
-                points += 1
+                stretch_count += 1
+        if len(gc_stretch_check) == stretch_count:
+            uitei_rules["GC stretch < 10"] = "Absent"
+            points += 1
+        """Rule 5"""
+        tm_at_5 = round(mt.Tm_NN(seq = sense_strand[0:8], c_seq=sense_strand[0:8].complement()),1)
+        tm_at_3 = round(mt.Tm_NN(seq = sense_strand[10:18], c_seq=sense_strand[10:18].complement()),1)
+        diff = round(abs(tm_at_5-tm_at_3),1)
+        if diff > 5:
+            uitei_rules["Asymmetrical 5'/3' Tm"] = f"Difference: {diff}C, OK"
+            points += 1
+        else:
+            uitei_rules["Asymmetrical 5'/3' Tm"] = f"Difference: {diff}C, BAD"
+        """Rule 6"""
+        if tm_at_5-tm_at_3 >= 10:
+            uitei_rules["Unstable 3' low Tm"] = f"Passed, Tm at 3' END = {tm_at_3}C, dT > 10"
+            points += 1
+        else:
+            uitei_rules["Unstable 3' low Tm"] = f"Failed, Tm = {tm_at_3}, dT < 10"
+        """Rule 7"""
+        total_mt = round(mt.Tm_NN(seq = sense_strand, c_seq=sense_strand.complement()),1)
+        if total_mt <= 21.5:
+            uitei_rules["Total Tm"]=f"{total_mt}C"
+            points += 1
+        else:
+            uitei_rules["Total Tm"] = f"{total_mt}C, higher than 21.5C, FAIL"
+        uitei_rules["Result"] = points
+        # print(uitei_rules)
+        if points > 5:
+            return True, uitei_rules
+        else:
+            return False, uitei_rules
 
-
+    def check_reynolds_algorithm(self, mrna: Seq) -> tuple:
+        reynolds_rules = {"GC content":"",
+                          "A/U within 15-19nt":"",
+                          "internal repeats":"",
+                          "A at 3nt":"",
+                          "A at 19nt":"",
+                          "U at 10nt":"",
+                          "G/C not at 19nt":"",
+                          "Result":""}
+        return reynolds_rules, True
 
 
 
@@ -191,11 +233,14 @@ if __name__ == '__main__':
     subseqlist = testcase.read_fasta_prepare_subsequences()
     for mrna in subseqlist:
         antisense_strand = testcase.create_antisense_strand_from_mRNA_template(mrna)
-        if testcase.check_sense_strand_quality(mrna):
+        if testcase.check_uitei_design(mrna)[0]:
             print(f"{CGREEN_BACKGROUND}Sense strand   :  3' {CEND}  {''.join([nuc_colors[x] for x in mrna])}TT  5'")
             print("                       "+"|"*len(antisense_strand))
             print(f"{CBLUE}Antisense strand: 5' {CEND}TT{''.join([nuc_colors[x] for x in antisense_strand])}    3'")
-            for key, value in testcase.check_sense_strand_quality(mrna)[0].items():
+            # for key, value in testcase.check_sense_strand_quality(mrna)[0].items():
+            #     print(f'{key}: {value}')
+            # print("\n")
+            for key, value in testcase.check_uitei_design(mrna)[1].items():
                 print(f'{key}: {value}')
             print("\n")
 
